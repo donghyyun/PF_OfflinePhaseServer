@@ -1,0 +1,47 @@
+from struct import calcsize, unpack_from
+from datetime import datetime
+from Setting import COLLECTING_DEVICE_MAC, PRINT
+
+
+def parse_datastream(buffer):
+    def unpacking(form):
+        nonlocal offset
+        unpacked = unpack_from(form, buffer, offset)[0]
+        offset += calcsize(form)
+        return unpacked
+
+    def print_data():
+        nonlocal timestamp, device_id, records
+        if not records:
+            return
+
+        string = '[%s] [%s] - %d records\n' % (timestamp, device_id, len(records))
+        for _mac in records.keys():
+            string += _mac + '(%s) ' % (records[_mac])
+        print(string)
+
+    offset = 0
+    id_len = unpacking('b')
+    device_id = unpacking(str(id_len) + 's').decode()
+
+    unix_time = unpacking('>q')
+    timestamp = datetime.fromtimestamp(unix_time / 1000).strftime('%Y-%m-%d %H:%M:%S')
+
+    records = {}
+    record_len = unpacking('>h')
+    for _ in range(record_len):
+        mac = unpacking('6s').hex().upper()
+        rssi = -1 * unpacking('b')
+
+        if COLLECTING_DEVICE_MAC is None or mac in COLLECTING_DEVICE_MAC:
+            records[mac] = rssi
+
+    if PRINT:
+        print_data()
+
+    return timestamp, device_id, records
+
+
+def process(recieved):
+    timestamp, device_id, records = parse_datastream(recieved)
+    #saving
