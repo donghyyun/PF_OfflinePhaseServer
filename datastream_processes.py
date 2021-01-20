@@ -1,6 +1,11 @@
 from struct import calcsize, unpack_from
 from datetime import datetime
 from Setting import COLLECTING_DEVICE_MAC, PRINT
+from DataList import DataList
+import threading
+
+
+lock = threading.Lock()
 
 
 def parse_datastream(buffer):
@@ -42,6 +47,12 @@ def parse_datastream(buffer):
     return timestamp, device_id, records
 
 
-def process(recieved):
-    timestamp, device_id, records = parse_datastream(recieved)
-    #saving
+def save_data(buffer):
+    timestamp, device_id, records = parse_datastream(buffer)
+
+    if len(records) == 1:
+        lock.acquire()
+        try:
+            DataList.instance().add(timestamp, device_id, records[COLLECTING_DEVICE_MAC[0]])
+        finally:
+            lock.release()
