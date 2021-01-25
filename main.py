@@ -8,17 +8,14 @@ server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
 server_thread = threading.Thread(target=server.serve_forever)
 server_thread.daemon = True
 server_thread.start()
-print('open server')
+print('open server at ', server_thread.getName())
 
-while server_thread.is_alive() or threading.active_count() > 1:
+while threading.active_count() > 1:
     time.sleep(3)
-    if server_thread.is_alive():
-        print('\rCollected data size: {}'.format(len(DataList.instance())), end='')
-    else:
-        print()
+    print('\rCollected data size: {}'.format(len(DataList.instance())), end='')
 
 server.server_close()
-# server shut down
+# server closed
 
 # data to fingerprint (t, r1, r2, r3, ...)
 print('Collected Data')

@@ -25,10 +25,14 @@ class DataList:
     def add(self, timestamp, device_id, rssi):
         self.data_dict[device_id].append((timestamp, rssi))
 
+    def remove_all(self):
+        for _id in self.data_dict.keys():
+            self.data_dict[_id].clear()
+
     def print(self):
         self.__sort()
         for _id in self.data_dict.keys():
-            print('>' + _id)
+            print('>' + _id, len(self.data_dict[_id]))
             for record in self.data_dict[_id]:
                 print(record)
             print()

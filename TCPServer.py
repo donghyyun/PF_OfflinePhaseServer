@@ -1,10 +1,16 @@
-import socketserver, threading
+import socketserver, threading, Setting
 from struct import calcsize
 import datastream_processes as dp
+from DataList import DataList
 
-STARTING_SYMBOL = b'RECORD'
-SHUTDOWN_SYMBOL = b'SHUTDW'
+HEADERS = {'RECORD': b'RECORD', 'SHUTDOWN': b'SHUTDW', 'SAVE START': b'SVSTRT', 'SAVE STOP': b'SVSTOP'}
 MAX_LENGTH = 2048
+
+
+def threads_join():
+    for thread in threading.enumerate():
+        if thread not in [threading.main_thread(), threading.current_thread()]:
+            thread.join()
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -12,21 +18,51 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
+
     def handle(self):
         msg_header = self.request.recv(calcsize('6s'))
 
-        if msg_header == SHUTDOWN_SYMBOL:
+        if msg_header == HEADERS['SHUTDOWN']:
             self.server.shutdown()
-
-            for thread in threading.enumerate():
-                if thread.getName() != 'MainThread' and thread is not threading.current_thread():
-                    thread.join()
+            threads_join()
 
             print('\nshutdown server')
+            return
 
-        elif msg_header == STARTING_SYMBOL:
+        if msg_header not in HEADERS.values():
+            print('Incorrect header is given: {}'.format(msg_header))
+            return
+
+        if msg_header == HEADERS['SAVE STOP']:
+            self.server.shutdown()
+            print('\nshutdown to stop saving')
+            threads_join()
+
+            # save to database
+            Setting.SAVE = False
+            DataList.instance().print()
+            DataList.instance().remove_all()
+
+            print('reopen server after saving to database')
+            self.server.serve_forever()
+
+        elif msg_header == HEADERS['SAVE START']:
+            self.server.shutdown()
+            print('\nshutdown to start saving')
+            threads_join()
+
+            Setting.SAVE = True
+            print('reopen with start saving')
+            self.server.serve_forever()
+
+        elif msg_header == HEADERS['RECORD']:
             buffer = self.request.recv(MAX_LENGTH)
-            dp.save_data(buffer)
+            timestamp, device_id, records = dp.parse_datastream(buffer)
 
-        else:
-            print('Incorrect entry string: ' + msg_header)
+            if len(records) == 1 and Setting.SAVE:
+                Setting.LOCK.acquire()
+                try:
+                    dp.save_data(timestamp, device_id, records)
+                finally:
+                    Setting.LOCK.release()
+
