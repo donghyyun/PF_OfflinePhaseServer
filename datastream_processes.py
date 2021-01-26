@@ -29,7 +29,7 @@ def parse_datastream(buffer):
     timestamp = datetime.fromtimestamp(unix_time / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
     records = {}
-    record_len = unpacking('>h')
+    record_len = unpacking('>H')
     for _ in range(record_len):
         mac = unpacking('6s').hex().upper()
         rssi = -1 * unpacking('b')

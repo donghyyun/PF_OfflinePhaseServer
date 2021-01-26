@@ -8,7 +8,7 @@ server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
 server_thread = threading.Thread(target=server.serve_forever)
 server_thread.daemon = True
 server_thread.start()
-print('open server at ', server_thread.getName())
+print('open server')
 
 while threading.active_count() > 1:
     time.sleep(3)
@@ -16,8 +16,4 @@ while threading.active_count() > 1:
 
 server.server_close()
 # server closed
-
-# data to fingerprint (t, r1, r2, r3, ...)
-print('Collected Data')
-print('=' * 50)
-DataList.instance().print()
+print('server closed...')

@@ -42,4 +42,5 @@ class DataList:
             self.data_dict[_id].sort(key=lambda x: x[0])
 
     def get(self):
+        self.__sort()
         return self.data_dict
