@@ -56,9 +56,10 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             self.server.shutdown()
             print('\nshutdown to start saving')
 
-            # for PMC
-            # coordinate = self.request.recv(10).decode()
-            # x, y = coordinate.split(',')
+            coordinate = self.request.recv(10).decode()
+            x, y = coordinate.split(',')
+            print(x, y)
+            DBConnector.instance().set_coordinate(x, y)
 
             threads_join()
             Setting.SAVE = True
