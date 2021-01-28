@@ -1,19 +1,46 @@
+from pymongo import MongoClient
 import Setting
 
 
-class DataList:
+class SingletonInstance:
     __instance = None
 
     @classmethod
-    def __getInstance(cls):
+    def __get_instance(cls):
         return cls.__instance
 
     @classmethod
-    def instance(cls, *args, **kwargs):
-        cls.__instance = cls(*args, **kwargs)
-        cls.instance = cls.__getInstance
+    def instance(cls):
+        cls.__instance = cls()
+        cls.instance = cls.__get_instance
         return cls.__instance
 
+
+class DBConnector(SingletonInstance):
+    def __init__(self):
+        self.client = MongoClient(Setting.MONGO_HOST, Setting.MONGO_PORT)
+        db = self.client[Setting.DB_NAME]
+        self.collection = db[Setting.COLLECTION_NAME]
+        self.x, self.y = 0, 0
+
+    def set_coordinate(self, x, y):
+        self.x, self.y = x, y
+
+    def insert(self, data_dict):
+        for _id in data_dict.keys():
+            doc = {
+                "x": self.x,
+                "y": self.y,
+                "device_id": _id,
+                "records": [record[1] for record in data_dict[_id]]
+            }
+            self.collection.insert(doc)
+
+    def close(self):
+        self.client.close()
+
+
+class RawDataCollection(SingletonInstance):
     def __init__(self):
         self.data_dict = {}
         for device_id in Setting.sniffer_stations:

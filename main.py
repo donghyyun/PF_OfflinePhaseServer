@@ -1,6 +1,7 @@
 from TCPServer import ThreadedTCPServer, ThreadedTCPRequestHandler
 from Setting import HOST, PORT
-from DataList import DataList
+from Data import RawDataCollection
+
 import threading, time
 
 # run server and saving the data
@@ -12,8 +13,8 @@ print('open server')
 
 while threading.active_count() > 1:
     time.sleep(3)
-    print('\rCollected data size: {}'.format(len(DataList.instance())), end='')
+    print('\rCollected data size: {}'.format(len(RawDataCollection.instance())), end='')
 
 server.server_close()
 # server closed
-print('server closed...')
+print('\nserver closed...')
