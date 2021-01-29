@@ -1,6 +1,8 @@
 from struct import calcsize, unpack_from
 from datetime import datetime
-from Setting import COLLECTING_DEVICE_MAC, PRINT
+from Setting import COLLECTING_DEVICE_MAC, PRINT, sniffer_stations
+
+import numpy as np
 
 
 def parse_datastream(buffer):
@@ -21,7 +23,7 @@ def parse_datastream(buffer):
         print(string)
 
     offset = 0
-    id_len = unpacking('b')
+    id_len = unpacking('B')
     device_id = unpacking(str(id_len) + 's').decode()
 
     unix_time = unpacking('>q')
@@ -31,7 +33,7 @@ def parse_datastream(buffer):
     record_len = unpacking('>H')
     for _ in range(record_len):
         mac = unpacking('6s').hex().upper()
-        rssi = -1 * unpacking('b')
+        rssi = -1 * unpacking('B')
 
         if COLLECTING_DEVICE_MAC is None or mac in COLLECTING_DEVICE_MAC:
             records[mac] = rssi
@@ -40,3 +42,14 @@ def parse_datastream(buffer):
         print_data()
 
     return timestamp, device_id, records
+
+
+def raw_to_fingerprint_pmc(collection):
+    fp_dict = {}
+
+    for device_id in sniffer_stations:
+        rss = [record[1] for record in collection[device_id]]
+        fp_dict[device_id] = int(np.mean(rss) if rss != [] else -999)
+
+    return list(fp_dict.values())
+

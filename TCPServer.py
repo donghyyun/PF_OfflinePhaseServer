@@ -27,6 +27,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
         msg_header = self.request.recv(calcsize('6s'))
+        # print(threading.current_thread().getName(), msg_header)
 
         process = {HEADERS['RECORD']: self.record_save_process,
                    HEADERS['SHUTDOWN']: self.shutdown_process,
@@ -41,13 +42,18 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     # Corresponding Processes
     def record_save_process(self):
         buffer = self.request.recv(MAX_LENGTH)
+        if len(buffer) >= MAX_LENGTH:
+            print("buffer_size:", len(buffer))
+
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
         if len(records) == 1 and Setting.SAVE:
+            # print(threading.current_thread().getName(), 'wait for LOCK')
             LOCK.acquire()
             try:
                 RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC[0]])
             finally:
+                # print(threading.current_thread().getName(), 'released LOCK')
                 LOCK.release()
 
     def shutdown_process(self, incorrect_header=None):
@@ -66,11 +72,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         threads_join()
         Setting.SAVE = True
 
-        coordinate = self.request.recv(10).decode()
-        x, y = (int(i) for i in coordinate.split(','))
-        print("Coordinate: ", x, y)
-        DBConnector.instance().set_coordinate(x, y)
-
         print('reopen server at %s:: save_start_process' % threading.current_thread().getName())
         self.server.serve_forever()
 
@@ -78,18 +79,20 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         self.server.shutdown()
         print('\nshutdown:: save_stop_process')
 
+        coordinate = self.request.recv(10).decode()
+        x, y = (int(i) for i in coordinate.split(','))
+
         threads_join()
         Setting.SAVE = False
 
         # save to database
         # RawDataCollection.instance().print()
-        DBConnector.instance().insert(RawDataCollection.instance().get())
+        # DBConnector.instance().insert(RawDataCollection.instance().get())
+        fp = dp.raw_to_fingerprint_pmc(RawDataCollection.instance().get())
+        print("fingerprint at" + "({}, {}):".format(x, y), fp)
+        DBConnector.instance().insert_fp((x, y), fp)
 
-        LOCK.acquire()
-        try:
-            RawDataCollection.instance().remove_all()
-        finally:
-            LOCK.release()
+        RawDataCollection.instance().remove_all()
 
         print('reopen server at %s:: save_stop_process' % threading.current_thread().getName())
         self.server.serve_forever()

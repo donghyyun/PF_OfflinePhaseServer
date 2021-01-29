@@ -21,20 +21,17 @@ class DBConnector(SingletonInstance):
         self.client = MongoClient(Setting.MONGO_HOST, Setting.MONGO_PORT)
         db = self.client[Setting.DB_NAME]
         self.collection = db[Setting.COLLECTION_NAME]
-        self.x, self.y = 0, 0
 
-    def set_coordinate(self, x, y):
-        self.x, self.y = x, y
+    def insert_fp(self, coordinate, fp):
+        x, y = coordinate
+        doc = {
+                "coordinate": (x, y),
+                "fingerprint": fp
+        }
+        self.collection.insert(doc)
 
-    def insert(self, data_dict):
-        for _id in data_dict.keys():
-            doc = {
-                "x": self.x,
-                "y": self.y,
-                "device_id": _id,
-                "records": [record for record in data_dict[_id]]
-            }
-            self.collection.insert(doc)
+    def find(self, query={}, fields={"_id": 0}):
+        return [doc for doc in self.collection.find(query, fields)]
 
     def close(self):
         self.client.close()
@@ -48,6 +45,9 @@ class RawDataCollection(SingletonInstance):
 
     def __len__(self):
         return sum(len(self.data_dict[_id]) for _id in self.data_dict.keys())
+
+    def count_each(self):
+        return [len(self.data_dict[_id]) for _id in self.data_dict.keys()]
 
     def add(self, timestamp, device_id, rssi):
         self.data_dict[device_id].append((timestamp, rssi))
