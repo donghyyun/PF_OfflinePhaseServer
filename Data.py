@@ -32,7 +32,7 @@ class DBConnector(SingletonInstance):
                 "x": self.x,
                 "y": self.y,
                 "device_id": _id,
-                "records": [record[1] for record in data_dict[_id]]
+                "records": [record for record in data_dict[_id]]
             }
             self.collection.insert(doc)
 

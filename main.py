@@ -1,4 +1,4 @@
-from TCPServer import ThreadedTCPServer, ThreadedTCPRequestHandler
+from TCPServer import ThreadedTCPServer, ThreadedTCPRequestHandler, LOCK
 from Setting import HOST, PORT
 from Data import RawDataCollection
 
@@ -13,7 +13,13 @@ print('open server')
 
 while threading.active_count() > 1:
     time.sleep(3)
-    print('\rCollected data size: {}'.format(len(RawDataCollection.instance())), end='')
+
+    LOCK.acquire()
+    try:
+        print('\rCollected data size: {}'.format(len(RawDataCollection.instance())), end='')
+    finally:
+        LOCK.release()
+
 
 server.server_close()
 # server closed

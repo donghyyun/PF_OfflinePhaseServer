@@ -67,7 +67,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         Setting.SAVE = True
 
         coordinate = self.request.recv(10).decode()
-        x, y = coordinate.split(',')
+        x, y = (int(i) for i in coordinate.split(','))
         print("Coordinate: ", x, y)
         DBConnector.instance().set_coordinate(x, y)
 
@@ -84,7 +84,12 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         # save to database
         # RawDataCollection.instance().print()
         DBConnector.instance().insert(RawDataCollection.instance().get())
-        RawDataCollection.instance().remove_all()
+
+        LOCK.acquire()
+        try:
+            RawDataCollection.instance().remove_all()
+        finally:
+            LOCK.release()
 
         print('reopen server at %s:: save_stop_process' % threading.current_thread().getName())
         self.server.serve_forever()
