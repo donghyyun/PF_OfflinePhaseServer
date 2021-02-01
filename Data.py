@@ -23,6 +23,9 @@ class DBConnector(SingletonInstance):
         self.collection = db[Setting.COLLECTION_NAME]
 
     def insert_fp(self, coordinate, fp):
+        if not fp:
+            return
+
         x, y = coordinate
         doc = {
                 "coordinate": (x, y),
@@ -40,7 +43,7 @@ class DBConnector(SingletonInstance):
 class RawDataCollection(SingletonInstance):
     def __init__(self):
         self.data_dict = {}
-        for device_id in Setting.sniffer_stations:
+        for device_id in Setting.SNIFFER_STATIONS:
             self.data_dict[device_id] = []
 
     def __len__(self):

@@ -47,11 +47,11 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
-        if len(records) == 1 and Setting.SAVE:
+        if Setting.SAVE and len(records) == 1:
             # print(threading.current_thread().getName(), 'wait for LOCK')
             LOCK.acquire()
             try:
-                RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC[0]])
+                RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
             finally:
                 # print(threading.current_thread().getName(), 'released LOCK')
                 LOCK.release()
@@ -86,8 +86,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         Setting.SAVE = False
 
         # save to database
-        # RawDataCollection.instance().print()
-        # DBConnector.instance().insert(RawDataCollection.instance().get())
         fp = dp.raw_to_fingerprint_pmc(RawDataCollection.instance().get())
         print("fingerprint at" + "({}, {}):".format(x, y), fp)
         DBConnector.instance().insert_fp((x, y), fp)
