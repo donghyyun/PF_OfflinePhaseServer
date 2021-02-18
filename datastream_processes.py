@@ -14,12 +14,11 @@ def parse_datastream(buffer):
 
     def print_data():
         nonlocal timestamp, device_id, records
-        if not records:
-            return
 
         string = '[%s] [%s] - %d records\n' % (timestamp, device_id, len(records))
         for _mac in records.keys():
             string += _mac + '(%s) ' % (records[_mac])
+
         print(string)
 
     offset = 0
@@ -49,7 +48,7 @@ def raw_to_fingerprint_pmc(collection):
 
     for device_id in SNIFFER_STATIONS:
         rss = [record[1] for record in collection[device_id]]
-        fp_dict[device_id] = int(np.mean(rss) if rss != [] else -999)
+        fp_dict[device_id] = int(np.mean(rss) if rss != [] else -99)
 
     return list(fp_dict.values())
 

@@ -22,14 +22,15 @@ class DBConnector(SingletonInstance):
         db = self.client[Setting.DB_NAME]
         self.collection = db[Setting.COLLECTION_NAME]
 
-    def insert_fp(self, coordinate, fp):
+    def insert_fp(self, coordinate, fp, num_each):
         if not fp:
             return
 
         x, y = coordinate
         doc = {
+                "fingerprint": fp,
                 "coordinate": (x, y),
-                "fingerprint": fp
+                "num of collected rssi": num_each
         }
         self.collection.insert(doc)
 

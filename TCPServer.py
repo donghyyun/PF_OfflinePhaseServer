@@ -42,9 +42,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     # Corresponding Processes
     def record_save_process(self):
         buffer = self.request.recv(MAX_LENGTH)
-        if len(buffer) >= MAX_LENGTH:
-            print("buffer_size:", len(buffer))
-
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
         if Setting.SAVE and len(records) == 1:
@@ -87,8 +84,11 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         # save to database
         fp = dp.raw_to_fingerprint_pmc(RawDataCollection.instance().get())
+        num_each = RawDataCollection.instance().count_each()
+
         print("fingerprint at" + "({}, {}):".format(x, y), fp)
-        DBConnector.instance().insert_fp((x, y), fp)
+        print("collected size:", num_each)
+        DBConnector.instance().insert_fp((x, y), fp, num_each)
 
         RawDataCollection.instance().remove_all()
 
