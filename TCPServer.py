@@ -14,7 +14,7 @@ def threads_join():
     for thread in threading.enumerate():
         name = thread.getName()
 
-        if name.startswith("Thread-") and thread is not threading.current_thread():
+        if name.startswith("RECORD"):
             print(name, 'wait for close')
             thread.join()
             print(name, 'is closed')
@@ -45,7 +45,9 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
         if Setting.SAVE and len(records) == 1:
-            print(threading.current_thread().getName(), 'wait for LOCK')
+            threading.current_thread().setName("RECORD" + threading.current_thread().getName())
+
+            print(threading.current_thread().getName(), "appended to 'threads' & wait for LOCK")
             LOCK.acquire()
             try:
                 RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
@@ -64,35 +66,40 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def save_start_process(self):
         self.server.shutdown()
-        print('\nshutdown:: save_start_process')
+        print('\n>>>save_start_process')
 
-        threads_join()
         Setting.SAVE = True
+
+        coordinate = self.request.recv(100).decode().strip()
+        x, y, collect_time = (int(i) for i in coordinate.split(','))
+
+        RawDataCollection.instance().set_coordinate(x, y)
+        self.request.send(("Saving start-coordinate: (" + coordinate + ")").encode())
+
+        threading.Timer(collect_time, self.save_stop_process, (self.request,)).start()
 
         print('reopen server at %s:: save_start_process' % threading.current_thread().getName())
         self.server.serve_forever()
 
-    def save_stop_process(self):
-        self.server.shutdown()
-        print('\nshutdown:: save_stop_process')
+    def save_stop_process(self, sock):
+        print('\n>>>save_stop_process')
+        # sock.send("hello".encode())
 
-        coordinate = self.request.recv(10).decode()
-        x, y = (int(i) for i in coordinate.split(','))
-
-        threads_join()
         Setting.SAVE = False
+        threads_join()
 
         # save to database
-        raw_data = RawDataCollection.instance().get()
+        raw_data, x, y = RawDataCollection.instance().get()
         fp = dp.raw_to_fingerprint_pmc(raw_data)
         num_each = RawDataCollection.instance().count_each()
 
         print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
         print("collected size:", num_each)
-        DBConnector.instance().insert_rm_point((x, y), fp, num_each)
-        DBConnector.instance().insert_raw(raw_data)
+        # DBConnector.instance().insert_rm_point((x, y), fp, num_each)
+        # DBConnector.instance().insert_raw(raw_data)
 
         RawDataCollection.instance().remove_all()
 
-        print('reopen server at %s:: save_stop_process' % threading.current_thread().getName())
-        self.server.serve_forever()
+        sock.send((str(fp) + "\n" + str(num_each)).encode())
+
+        print('<<<save_stop_process')

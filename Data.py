@@ -58,6 +58,7 @@ class DBConnector(SingletonInstance):
 class RawDataCollection(SingletonInstance):
     def __init__(self):
         self.data_dict = {}
+        self.x, self.y = 0, 0
         for device_id in Setting.SNIFFER_STATIONS:
             self.data_dict[device_id] = []
 
@@ -66,6 +67,9 @@ class RawDataCollection(SingletonInstance):
 
     def count_each(self):
         return [len(self.data_dict[_id]) for _id in self.data_dict.keys()]
+
+    def set_coordinate(self, x, y):
+        self.x, self.y = x, y
 
     def add(self, timestamp, device_id, rssi):
         self.data_dict[device_id].append((timestamp, rssi))
@@ -88,4 +92,4 @@ class RawDataCollection(SingletonInstance):
 
     def get(self):
         self.__sort()
-        return self.data_dict
+        return self.data_dict, self.x, self.y
