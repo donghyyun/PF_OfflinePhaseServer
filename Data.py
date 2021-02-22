@@ -19,10 +19,23 @@ class SingletonInstance:
 class DBConnector(SingletonInstance):
     def __init__(self):
         self.client = MongoClient(Setting.MONGO_HOST, Setting.MONGO_PORT)
-        db = self.client[Setting.DB_NAME]
-        self.collection = db[Setting.COLLECTION_NAME]
+        self.db = self.client[Setting.DB_NAME]
 
-    def insert_fp(self, coordinate, fp, num_each):
+    def insert_raw(self, raw_data):
+        for device_id in Setting.SNIFFER_STATIONS:
+            collection = self.db[device_id]
+            docs = []
+            for data in raw_data[device_id]:
+                timestamp, rssi = data
+                docs.append({
+                    "MAC": Setting.COLLECTING_DEVICE_MAC,
+                    "rssi": rssi,
+                    "timestamp": timestamp
+                })
+            if docs:
+                collection.insert_many(docs)
+
+    def insert_rm_point(self, coordinate, fp, num_each):
         if not fp:
             return
 
@@ -30,9 +43,10 @@ class DBConnector(SingletonInstance):
         doc = {
                 "fingerprint": fp,
                 "coordinate": (x, y),
-                "num of collected rssi": num_each
+                "DEBUG_num of collected rssi": num_each
         }
-        self.collection.insert(doc)
+        collection = self.db[Setting.RADIOMAP_NAME]
+        collection.insert(doc)
 
     def find(self, query={}, fields={"_id": 0}):
         return [doc for doc in self.collection.find(query, fields)]

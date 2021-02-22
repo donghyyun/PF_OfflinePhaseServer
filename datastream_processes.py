@@ -43,12 +43,12 @@ def parse_datastream(buffer):
     return timestamp, device_id, records
 
 
-def raw_to_fingerprint_pmc(collection):
+def raw_to_fingerprint_pmc(raw_data):
     fp_dict = {}
 
     for device_id in SNIFFER_STATIONS:
-        rss = [record[1] for record in collection[device_id]]
-        fp_dict[device_id] = int(np.mean(rss) if rss != [] else -99)
+        rssi_set = [rssi for _, rssi in raw_data[device_id]]
+        fp_dict[device_id] = int(np.mean(rssi_set) if rssi_set != [] else -99)
 
     return list(fp_dict.values())
 

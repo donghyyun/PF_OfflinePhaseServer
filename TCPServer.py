@@ -15,9 +15,9 @@ def threads_join():
         name = thread.getName()
 
         if name.startswith("Thread-") and thread is not threading.current_thread():
-            # print(name, 'wait for close')
+            print(name, 'wait for close')
             thread.join()
-            # print(name, 'is closed')
+            print(name, 'is closed')
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -45,12 +45,12 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
         if Setting.SAVE and len(records) == 1:
-            # print(threading.current_thread().getName(), 'wait for LOCK')
+            print(threading.current_thread().getName(), 'wait for LOCK')
             LOCK.acquire()
             try:
                 RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
             finally:
-                # print(threading.current_thread().getName(), 'released LOCK')
+                print(threading.current_thread().getName(), 'released LOCK')
                 LOCK.release()
 
     def shutdown_process(self, incorrect_header=None):
@@ -83,12 +83,14 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         Setting.SAVE = False
 
         # save to database
-        fp = dp.raw_to_fingerprint_pmc(RawDataCollection.instance().get())
+        raw_data = RawDataCollection.instance().get()
+        fp = dp.raw_to_fingerprint_pmc(raw_data)
         num_each = RawDataCollection.instance().count_each()
 
-        print("fingerprint at" + "({}, {}):".format(x, y), fp)
+        print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
         print("collected size:", num_each)
-        DBConnector.instance().insert_fp((x, y), fp, num_each)
+        DBConnector.instance().insert_rm_point((x, y), fp, num_each)
+        DBConnector.instance().insert_raw(raw_data)
 
         RawDataCollection.instance().remove_all()
 
