@@ -31,8 +31,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         process = {HEADERS['RECORD']: self.record_save_process,
                    HEADERS['SHUTDOWN']: self.shutdown_process,
-                   HEADERS['SAVE START']: self.save_start_process,
-                   HEADERS['SAVE STOP']: self.save_stop_process}.get(msg_header, self.shutdown_process)
+                   HEADERS['SAVE START']: self.save_start_process}.get(msg_header, self.shutdown_process)
 
         if msg_header not in HEADERS.values():
             process(msg_header)
@@ -47,7 +46,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         if Setting.SAVE and len(records) == 1:
             threading.current_thread().setName("RECORD" + threading.current_thread().getName())
 
-            print(threading.current_thread().getName(), "appended to 'threads' & wait for LOCK")
+            print(threading.current_thread().getName(), "wait for LOCK")
             LOCK.acquire()
             try:
                 RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
@@ -70,20 +69,19 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         Setting.SAVE = True
 
-        coordinate = self.request.recv(100).decode().strip()
-        x, y, collect_time = (int(i) for i in coordinate.split(','))
+        buffer = self.request.recv(100).decode().strip()
+        x, y, collect_time = (int(i) for i in buffer.split(','))
 
         RawDataCollection.instance().set_coordinate(x, y)
-        self.request.send(("Saving start-coordinate: (" + coordinate + ")").encode())
+        self.request.send(("Saving start-coordinate: (%d, %d)" % (x, y)).encode())
 
-        threading.Timer(collect_time, self.save_stop_process, (self.request,)).start()
+        threading.Timer(collect_time, self.save_stop_process).start()
 
         print('reopen server at %s:: save_start_process' % threading.current_thread().getName())
         self.server.serve_forever()
 
-    def save_stop_process(self, sock):
+    def save_stop_process(self):
         print('\n>>>save_stop_process')
-        # sock.send("hello".encode())
 
         Setting.SAVE = False
         threads_join()
@@ -95,11 +93,11 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
         print("collected size:", num_each)
-        # DBConnector.instance().insert_rm_point((x, y), fp, num_each)
-        # DBConnector.instance().insert_raw(raw_data)
+        DBConnector.instance().insert_rm_point((x, y), fp, num_each)
+        DBConnector.instance().insert_raw(raw_data)
 
         RawDataCollection.instance().remove_all()
 
-        sock.send((str(fp) + "\n" + str(num_each)).encode())
+        self.request.send((str(fp) + "\n" + str(num_each)).encode())
 
         print('<<<save_stop_process')
