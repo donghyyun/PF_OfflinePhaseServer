@@ -15,9 +15,9 @@ def threads_join():
         name = thread.getName()
 
         if name.startswith("RECORD"):
-            print(name, 'wait for close')
+            # print(name, 'wait for close')
             thread.join()
-            print(name, 'is closed')
+            # print(name, 'is closed')
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -46,12 +46,12 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         if Setting.SAVE and len(records) == 1:
             threading.current_thread().setName("RECORD" + threading.current_thread().getName())
 
-            print(threading.current_thread().getName(), "wait for LOCK")
+            # print(threading.current_thread().getName(), "wait for LOCK")
             LOCK.acquire()
             try:
                 RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
             finally:
-                print(threading.current_thread().getName(), 'released LOCK')
+                # print(threading.current_thread().getName(), 'released LOCK')
                 LOCK.release()
 
     def shutdown_process(self, incorrect_header=None):
@@ -75,12 +75,12 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         RawDataCollection.instance().set_coordinate(x, y)
         self.request.send(("Saving start-coordinate: (%d, %d)" % (x, y)).encode())
 
-        threading.Timer(collect_time, self.save_stop_process).start()
+        threading.Timer(collect_time, self.save_stop_process, (collect_time, )).start()
 
         print('reopen server at %s:: save_start_process' % threading.current_thread().getName())
         self.server.serve_forever()
 
-    def save_stop_process(self):
+    def save_stop_process(self, collect_time):
         print('\n>>>save_stop_process')
 
         Setting.SAVE = False
@@ -91,13 +91,19 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         fp = dp.raw_to_fingerprint_pmc(raw_data)
         num_each = RawDataCollection.instance().count_each()
 
-        print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
-        print("collected size:", num_each)
-        DBConnector.instance().insert_rm_point((x, y), fp, num_each)
-        DBConnector.instance().insert_raw(raw_data)
+        w_buffer = str(num_each) + "\n"
+
+        if min(num_each) >= collect_time // 5:
+            print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
+            print("collected size:", num_each)
+            DBConnector.instance().insert_rm_point((x, y), fp, num_each)
+            DBConnector.instance().insert_raw(raw_data)
+
+            w_buffer += str(fp)
+        else:
+            w_buffer += "Not enough raw data"
 
         RawDataCollection.instance().remove_all()
-
-        self.request.send((str(fp) + "\n" + str(num_each)).encode())
+        self.request.send(w_buffer.encode())
 
         print('<<<save_stop_process')
