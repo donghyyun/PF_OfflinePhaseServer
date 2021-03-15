@@ -14,7 +14,7 @@ def threads_join():
     for thread in threading.enumerate():
         name = thread.getName()
 
-        if name.startswith("Thread-") and thread is not threading.current_thread():
+        if name.startswith("RECORD"):
             # print(name, 'wait for close')
             thread.join()
             # print(name, 'is closed')
@@ -31,8 +31,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
         process = {HEADERS['RECORD']: self.record_save_process,
                    HEADERS['SHUTDOWN']: self.shutdown_process,
-                   HEADERS['SAVE START']: self.save_start_process,
-                   HEADERS['SAVE STOP']: self.save_stop_process}.get(msg_header, self.shutdown_process)
+                   HEADERS['SAVE START']: self.save_start_process}.get(msg_header, self.shutdown_process)
 
         if msg_header not in HEADERS.values():
             process(msg_header)
@@ -42,16 +41,15 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     # Corresponding Processes
     def record_save_process(self):
         buffer = self.request.recv(MAX_LENGTH)
-        if len(buffer) >= MAX_LENGTH:
-            print("buffer_size:", len(buffer))
-
         timestamp, device_id, records = dp.parse_datastream(buffer)
 
-        if len(records) == 1 and Setting.SAVE:
-            # print(threading.current_thread().getName(), 'wait for LOCK')
+        if Setting.SAVE and len(records) == 1:
+            threading.current_thread().setName("RECORD" + threading.current_thread().getName())
+
+            # print(threading.current_thread().getName(), "wait for LOCK")
             LOCK.acquire()
             try:
-                RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC[0]])
+                RawDataCollection.instance().add(timestamp, device_id, records[Setting.COLLECTING_DEVICE_MAC])
             finally:
                 # print(threading.current_thread().getName(), 'released LOCK')
                 LOCK.release()
@@ -67,32 +65,45 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def save_start_process(self):
         self.server.shutdown()
-        print('\nshutdown:: save_start_process')
+        print('\n>>>save_start_process')
 
-        threads_join()
         Setting.SAVE = True
+
+        buffer = self.request.recv(100).decode().strip()
+        x, y, collect_time = (int(i) for i in buffer.split(','))
+
+        RawDataCollection.instance().set_coordinate(x, y)
+        self.request.send(("Saving start-coordinate: (%d, %d)" % (x, y)).encode())
+
+        threading.Timer(collect_time, self.save_stop_process, (collect_time, )).start()
 
         print('reopen server at %s:: save_start_process' % threading.current_thread().getName())
         self.server.serve_forever()
 
-    def save_stop_process(self):
-        self.server.shutdown()
-        print('\nshutdown:: save_stop_process')
+    def save_stop_process(self, collect_time):
+        print('\n>>>save_stop_process')
 
-        coordinate = self.request.recv(10).decode()
-        x, y = (int(i) for i in coordinate.split(','))
-
-        threads_join()
         Setting.SAVE = False
+        threads_join()
 
         # save to database
-        # RawDataCollection.instance().print()
-        # DBConnector.instance().insert(RawDataCollection.instance().get())
-        fp = dp.raw_to_fingerprint_pmc(RawDataCollection.instance().get())
-        print("fingerprint at" + "({}, {}):".format(x, y), fp)
-        DBConnector.instance().insert_fp((x, y), fp)
+        raw_data, x, y = RawDataCollection.instance().get()
+        fp = dp.raw_to_fingerprint_pmc(raw_data)
+        num_each = RawDataCollection.instance().count_each()
+
+        w_buffer = str(num_each) + "\n"
+
+        if min(num_each) >= collect_time // 5:
+            print("fingerprint at" + "({}, {}):".format(x, y), fp, end="\t")
+            print("collected size:", num_each)
+            DBConnector.instance().insert_rm_point((x, y), fp, num_each)
+            DBConnector.instance().insert_raw(raw_data)
+
+            w_buffer += str(fp)
+        else:
+            w_buffer += "Not enough raw data"
 
         RawDataCollection.instance().remove_all()
+        self.request.send(w_buffer.encode())
 
-        print('reopen server at %s:: save_stop_process' % threading.current_thread().getName())
-        self.server.serve_forever()
+        print('<<<save_stop_process')

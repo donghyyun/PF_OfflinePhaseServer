@@ -1,6 +1,6 @@
 from struct import calcsize, unpack_from
 from datetime import datetime
-from Setting import COLLECTING_DEVICE_MAC, PRINT, sniffer_stations
+from Setting import COLLECTING_DEVICE_MAC, PRINT, SNIFFER_STATIONS
 
 import numpy as np
 
@@ -14,12 +14,11 @@ def parse_datastream(buffer):
 
     def print_data():
         nonlocal timestamp, device_id, records
-        if not records:
-            return
 
         string = '[%s] [%s] - %d records\n' % (timestamp, device_id, len(records))
         for _mac in records.keys():
             string += _mac + '(%s) ' % (records[_mac])
+
         print(string)
 
     offset = 0
@@ -35,7 +34,7 @@ def parse_datastream(buffer):
         mac = unpacking('6s').hex().upper()
         rssi = -1 * unpacking('B')
 
-        if COLLECTING_DEVICE_MAC is None or mac in COLLECTING_DEVICE_MAC:
+        if COLLECTING_DEVICE_MAC is None or mac == COLLECTING_DEVICE_MAC:
             records[mac] = rssi
 
     if PRINT:
@@ -44,12 +43,12 @@ def parse_datastream(buffer):
     return timestamp, device_id, records
 
 
-def raw_to_fingerprint_pmc(collection):
+def raw_to_fingerprint_pmc(raw_data):
     fp_dict = {}
 
-    for device_id in sniffer_stations:
-        rss = [record[1] for record in collection[device_id]]
-        fp_dict[device_id] = int(np.mean(rss) if rss != [] else -999)
+    for device_id in SNIFFER_STATIONS:
+        rssi_set = [rssi for _, rssi in raw_data[device_id]]
+        fp_dict[device_id] = int(np.mean(rssi_set) if rssi_set != [] else -99)
 
     return list(fp_dict.values())
 

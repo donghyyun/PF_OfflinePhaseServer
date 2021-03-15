@@ -19,16 +19,34 @@ class SingletonInstance:
 class DBConnector(SingletonInstance):
     def __init__(self):
         self.client = MongoClient(Setting.MONGO_HOST, Setting.MONGO_PORT)
-        db = self.client[Setting.DB_NAME]
-        self.collection = db[Setting.COLLECTION_NAME]
+        self.db = self.client[Setting.DB_NAME]
 
-    def insert_fp(self, coordinate, fp):
+    def insert_raw(self, raw_data):
+        for device_id in Setting.SNIFFER_STATIONS:
+            collection = self.db[device_id]
+            docs = []
+            for data in raw_data[device_id]:
+                timestamp, rssi = data
+                docs.append({
+                    "MAC": Setting.COLLECTING_DEVICE_MAC,
+                    "rssi": rssi,
+                    "timestamp": timestamp
+                })
+            if docs:
+                collection.insert_many(docs)
+
+    def insert_rm_point(self, coordinate, fp, num_each):
+        if not fp:
+            return
+
         x, y = coordinate
         doc = {
+                "fingerprint": fp,
                 "coordinate": (x, y),
-                "fingerprint": fp
+                "DEBUG_num of collected rssi": num_each
         }
-        self.collection.insert(doc)
+        collection = self.db[Setting.RADIOMAP_NAME]
+        collection.insert(doc)
 
     def find(self, query={}, fields={"_id": 0}):
         return [doc for doc in self.collection.find(query, fields)]
@@ -40,7 +58,8 @@ class DBConnector(SingletonInstance):
 class RawDataCollection(SingletonInstance):
     def __init__(self):
         self.data_dict = {}
-        for device_id in Setting.sniffer_stations:
+        self.x, self.y = 0, 0
+        for device_id in Setting.SNIFFER_STATIONS:
             self.data_dict[device_id] = []
 
     def __len__(self):
@@ -48,6 +67,9 @@ class RawDataCollection(SingletonInstance):
 
     def count_each(self):
         return [len(self.data_dict[_id]) for _id in self.data_dict.keys()]
+
+    def set_coordinate(self, x, y):
+        self.x, self.y = x, y
 
     def add(self, timestamp, device_id, rssi):
         self.data_dict[device_id].append((timestamp, rssi))
@@ -70,4 +92,4 @@ class RawDataCollection(SingletonInstance):
 
     def get(self):
         self.__sort()
-        return self.data_dict
+        return self.data_dict, self.x, self.y
