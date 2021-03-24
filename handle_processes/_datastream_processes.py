@@ -1,8 +1,8 @@
 from struct import calcsize, unpack_from
 from datetime import datetime
-from Setting import COLLECTING_DEVICE_MAC, PRINT, SNIFFER_STATIONS
-
 import numpy as np
+
+from setting import COLLECTING_DEVICE_MAC, IS_PRINT, SNIFFER_STATIONS
 
 
 def parse_datastream(buffer):
@@ -37,7 +37,7 @@ def parse_datastream(buffer):
         if COLLECTING_DEVICE_MAC is None or mac == COLLECTING_DEVICE_MAC:
             records[mac] = rssi
 
-    if PRINT:
+    if IS_PRINT:
         print_data()
 
     return timestamp, device_id, records
@@ -48,7 +48,6 @@ def raw_to_fingerprint_pmc(raw_data):
 
     for device_id in SNIFFER_STATIONS:
         rssi_set = [rssi for _, rssi in raw_data[device_id]]
-        fp_dict[device_id] = int(np.mean(rssi_set) if rssi_set != [] else -99)
+        fp_dict[device_id] = int(np.mean(rssi_set) if rssi_set else -99)
 
     return list(fp_dict.values())
-
