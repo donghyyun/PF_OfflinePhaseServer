@@ -29,7 +29,7 @@ class DBConnector(metaclass=Singleton):
 
         for device_id in records.keys():
             docs = [document(timestamp, rssi) for timestamp, rssi in records[device_id]]
-            self.__insert(device_id, docs)
+            self.__insert(PREFIX + device_id, docs)
 
     def insert_save_inform(self, coordinates_tup, timestamps):
         start, stop = timestamps
@@ -50,6 +50,12 @@ class DBConnector(metaclass=Singleton):
             })
         finally:
             self.__insert(SAVE_INFORM_NAME, doc)
+
+    def insert_checkpoint(self):
+        doc = {
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        self.__insert('checkpoints', doc)
 
     def insert_rm_point(self, coordinate, fp, num_each):
         if not fp:

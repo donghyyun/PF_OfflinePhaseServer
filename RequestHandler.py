@@ -13,7 +13,8 @@ class RequestHandler(BaseRequestHandler):
             return {HEADERS['RECORD']: SaveRecordProcess,
                     HEADERS['SHUTDOWN']: ShutDownProcess,
                     HEADERS['SAVE START']: SaveStartProcess,
-                    HEADERS['SAVE STOP']: SaveStopProcess}.get(header)
+                    HEADERS['SAVE STOP']: SaveStopProcess,
+                    HEADERS['CHECKPOINT']: MarkCheckpointProcess}.get(header)
 
         msg_header = self.request.recv(HEADER_SIZE)
         process = select_process(msg_header)
