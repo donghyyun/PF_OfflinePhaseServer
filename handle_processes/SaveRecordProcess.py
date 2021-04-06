@@ -1,6 +1,6 @@
 import abc
 
-from setting import COLLECTING_DEVICE_MAC
+from setting import COLLECTING_DEVICE_MAC, LAST_CONNECTION_TIME
 from .AbstractProcess import AbstractProcess
 from . import _datastream_processes as dp
 
@@ -16,6 +16,7 @@ class SaveRecordProcess(AbstractProcess):
     def execute(self):
         buffer = self.request.recv(MAX_LENGTH)
         timestamp, device_id, records = dp.parse_datastream(buffer)
+        LAST_CONNECTION_TIME[device_id] = timestamp
 
         if not self.is_save:
             return None
