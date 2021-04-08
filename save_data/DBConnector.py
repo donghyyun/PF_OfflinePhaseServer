@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
 from threading import Lock
 from .Singleton import Singleton
 from setting import *
@@ -18,6 +18,16 @@ class DBConnector(metaclass=Singleton):
         with self._lock:
             collection = self._db[collection_name]
             collection.insert(docs)
+
+    def __find(self, collection_name, query):
+        with self._lock:
+            collection = self._db[collection_name]
+            return collection.find(query)
+
+    def __delete(self, collection_name, query):
+        with self._lock:
+            collection = self._db[collection_name]
+            collection.delete_many(query)
 
     def insert_records(self, records):
         def document(timestamp_, rssi_):
@@ -53,6 +63,7 @@ class DBConnector(metaclass=Singleton):
 
     def insert_checkpoint(self):
         doc = {
+            # 'device_id': SNIFFER_STATIONS[next(CHECKPOINTS)],
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         self.__insert('checkpoints', doc)
@@ -67,6 +78,18 @@ class DBConnector(metaclass=Singleton):
             "DEBUG_num of collected rssi": num_each
         }
         self.__insert(RADIOMAP_NAME, doc)
+
+    def delete_recent_data(self):
+        docs = self.__find(SAVE_INFORM_NAME, {})
+        recent_save_info = docs.sort('save_stop_time', DESCENDING).limit(1)[0]
+        start_time, stop_time = recent_save_info['save_start_time'], recent_save_info['save_stop_time']
+
+        query = {'$and': [{'timestamp': {'$gte': start_time}}, {'timestamp': {'$lte': stop_time}}]}
+        for device_id in SNIFFER_STATIONS:
+            self.__delete(PREFIX + device_id, query)
+
+        self.__delete('checkpoints', query)
+        self.__delete(SAVE_INFORM_NAME, {'_id': recent_save_info['_id']})
 
     def close(self):
         self._client.close()
