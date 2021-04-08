@@ -33,14 +33,17 @@ def parse_datastream(buffer):
     for _ in range(record_len):
         mac = unpacking('6s').hex().upper()
         rssi = -1 * unpacking('B')
-
-        if COLLECTING_DEVICE_MAC is None or mac == COLLECTING_DEVICE_MAC:
-            records[mac] = rssi
+        records[mac] = rssi
 
     if IS_PRINT:
         print_data()
 
-    return timestamp, device_id, records
+    try:
+        record = records[COLLECTING_DEVICE_MAC]
+    except KeyError:
+        record = None
+
+    return timestamp, device_id, record
 
 
 def raw_to_fingerprint_pmc(raw_data):

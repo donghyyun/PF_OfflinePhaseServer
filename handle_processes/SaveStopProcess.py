@@ -1,5 +1,6 @@
 import abc
 import threading
+import time
 
 from setting import PMC_MIN_FP
 from .AbstractProcess import AbstractProcess
@@ -24,10 +25,11 @@ class SaveStopProcess(AbstractProcess):
         self.set_thread_name("SAVE_STOP")
         print('\n>>>save_stop_process', threading.current_thread())
 
+        self.record_collection.set_stop_time()
+        time.sleep(1)
+
         self.shutdown_and_wait()
         self.is_save = False
-
-        self.record_collection.set_stop_time()
 
         record_dict = self.record_collection.record_dict
         coordinates = self.record_collection.coordinates
@@ -35,7 +37,6 @@ class SaveStopProcess(AbstractProcess):
                       self.record_collection.save_stop_time)
 
         # remove below if save each record in SaveRecordProcess()
-        self.db_connector.insert_records(record_dict)
         self.db_connector.insert_save_inform(coordinates, timestamps)
 
         record_count = [len(record_dict[_id]) for _id in record_dict.keys()]

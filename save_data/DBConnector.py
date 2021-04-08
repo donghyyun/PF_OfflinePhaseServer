@@ -29,6 +29,14 @@ class DBConnector(metaclass=Singleton):
             collection = self._db[collection_name]
             collection.delete_many(query)
 
+    def insert_one(self, timestamp, device_id, record):
+        doc = {
+            'MAC': COLLECTING_DEVICE_MAC,
+            'rssi': record,
+            'timestamp': timestamp
+        }
+        self.__insert(PREFIX + device_id, doc)
+
     def insert_records(self, records):
         def document(timestamp_, rssi_):
             return {

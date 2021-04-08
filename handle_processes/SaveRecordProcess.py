@@ -1,6 +1,6 @@
 import abc
 
-from setting import COLLECTING_DEVICE_MAC, LAST_CONNECTION_TIME
+from setting import LAST_CONNECTION_TIME
 from .AbstractProcess import AbstractProcess
 from . import _datastream_processes as dp
 
@@ -8,21 +8,15 @@ MAX_LENGTH = 2048
 
 
 class SaveRecordProcess(AbstractProcess):
-    def __save_raw_data(self, timestamp, device_id, record):
-        self.record_collection.add(timestamp, device_id, record)
-        # self.db_connector.insert_one(timestamp, device_id, record)
-
     @abc.abstractmethod
     def execute(self):
         buffer = self.request.recv(MAX_LENGTH)
-        timestamp, device_id, records = dp.parse_datastream(buffer)
+        timestamp, device_id, record = dp.parse_datastream(buffer)
         LAST_CONNECTION_TIME[device_id] = timestamp
 
-        if not self.is_save:
+        if not self.is_save or not record:
             return None
 
         self.set_thread_name("RECORD")
-
-        # currently only one device is support to collect
-        if COLLECTING_DEVICE_MAC in records.keys():
-            self.__save_raw_data(timestamp, device_id, records[COLLECTING_DEVICE_MAC])
+        self.record_collection.add(timestamp, device_id, record)
+        self.db_connector.insert_one(timestamp, device_id, record)
