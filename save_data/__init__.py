@@ -1,5 +1,5 @@
-from .RawDataCollection import RawDataCollection
-from .DBConnector import DBConnector
+from .RecordCollection import RecordCollection
+from .InsertDBConnector import InsertDBConnector
+from .DeleteDBConnector import DeleteDBConnector
 
-
-__all__ = ['RawDataCollection', 'DBConnector']
+__all__ = ['RecordCollection', 'InsertDBConnector', 'DeleteDBConnector']

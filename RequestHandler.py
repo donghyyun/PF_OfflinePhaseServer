@@ -9,16 +9,17 @@ class RequestHandler(BaseRequestHandler):
         def select_process(header):
             if header not in HEADERS.values():
                 return None
-            else:
-                return {HEADERS['RECORD']: SaveRecordProcess(request=self.request),
-                        HEADERS['SHUTDOWN']: ShutDownProcess(server=self.server),
-                        HEADERS['SAVE START']: SaveStartProcess(self.server, self.request),
-                        HEADERS['SAVE STOP']: SaveStopProcess(self.server, self.request)}.get(header)
+
+            return {HEADERS['RECORD']: SaveRecordProcess,
+                    HEADERS['SHUTDOWN']: ShutDownProcess,
+                    HEADERS['SAVE START']: SaveStartProcess,
+                    HEADERS['SAVE STOP']: SaveStopProcess,
+                    HEADERS['CHECKPOINT']: MarkCheckpointProcess}.get(header)
 
         msg_header = self.request.recv(HEADER_SIZE)
         process = select_process(msg_header)
 
         if process:
-            process.execute()
+            process(self.server, self.request).execute()
         else:
             print('\nIncorrect header is given:', msg_header)

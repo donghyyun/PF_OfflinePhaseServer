@@ -1,51 +1,24 @@
-from pymongo import MongoClient
 from threading import Lock
-from .Singleton import Singleton
-from setting import MONGO_HOST, MONGO_PORT, DB_NAME, RADIOMAP_NAME, SNIFFER_STATIONS, COLLECTING_DEVICE_MAC
+
+from pymongo import MongoClient
+
+from save_data.Singleton import Singleton
+from setting import MONGO_HOST, MONGO_PORT, DB_NAME
 
 
 class DBConnector(metaclass=Singleton):
-    def __init__(self):
-        self._client = MongoClient(MONGO_HOST, MONGO_PORT)
-        self.db = self._client[DB_NAME]
+    __client = MongoClient(MONGO_HOST, MONGO_PORT)
+    __db = __client[DB_NAME]
+    __lock = Lock()
 
-        self._lock = Lock()
+    @property
+    def db(self):
+        return DBConnector.__db
 
-    # def insert_raw(self, raw_data):
-    #     for device_id in SNIFFER_STATIONS:
-    #         collection = self.db[device_id]
-    #         docs = []
-    #         for data in raw_data[device_id]:
-    #             timestamp, rssi = data
-    #             docs.append({
-    #                 "MAC": COLLECTING_DEVICE_MAC,
-    #                 "rssi": rssi,
-    #                 "timestamp": timestamp
-    #             })
-    #         if docs:
-    #             collection.insert_many(docs)
-
-    def insert_raw(self, timestamp, device_id, record):
-        with self._lock:
-            collection = self.db[device_id]
-            collection.insert({
-                'MAC': COLLECTING_DEVICE_MAC,
-                'rssi': record,
-                'timestamp': timestamp
-            })
-
-    def insert_rm_point(self, coordinate, fp, num_each):
-        if not fp:
-            return
-
-        doc = {
-                "fingerprint": fp,
-                "coordinate": coordinate,
-                "DEBUG_num of collected rssi": num_each
-        }
-        with self._lock:
-            collection = self.db[RADIOMAP_NAME]
-            collection.insert(doc)
+    @property
+    def lock(self):
+        return DBConnector.__lock
 
     def close(self):
-        self._client.close()
+        self.__client.close()
+
