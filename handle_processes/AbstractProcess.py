@@ -1,12 +1,12 @@
 import abc
 import threading
 
-from save_data import DBConnector, RecordCollection
+from save_data import InsertDBConnector, RecordCollection
 
 
 class AbstractProcess:
     __is_save = False
-    __db_connector = DBConnector()
+    __db_connector = InsertDBConnector()
     __record_collection = RecordCollection()
 
     def __init__(self, server=None, request=None):
