@@ -9,8 +9,8 @@ class DeleteDBConnector(DBConnector):
         if not query:
             raise Exception('query is not given')
 
-        with self._lock:
-            collection = self._db[collection_name]
+        with self.lock:
+            collection = self.db[collection_name]
             return collection.find(query)
 
     def find_recent_save_inform(self):
@@ -21,8 +21,8 @@ class DeleteDBConnector(DBConnector):
         if not query:
             raise Exception('query is not given')
 
-        with self._lock:
-            collection = self._db[collection_name]
+        with self.lock:
+            collection = self.db[collection_name]
             collection.delete_many(query)
 
     def delete_records(self, query=None):

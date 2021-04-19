@@ -8,8 +8,8 @@ class InsertDBConnector(DBConnector):
         if not docs:
             raise Exception('docs are empty')
 
-        with self._lock:
-            collection = self._db[collection_name]
+        with self.lock:
+            collection = self.db[collection_name]
             collection.insert(docs)
 
     def insert_one(self, timestamp, device_id, record):
@@ -69,5 +69,5 @@ class InsertDBConnector(DBConnector):
         self.__insert(RADIOMAP_NAME, doc)
 
     def rename_collection(self, old_name, new_name):
-        with self._lock:
-            self._db[old_name].rename(new_name)
+        with self.lock:
+            self.db[old_name].rename(new_name)
