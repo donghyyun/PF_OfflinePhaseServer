@@ -4,6 +4,7 @@ import time
 
 from .AbstractProcess import AbstractProcess
 from .SaveStopProcess import SaveStopProcess
+from utils.threads import set_thread_name
 
 
 class SaveStartProcess(AbstractProcess):
@@ -38,7 +39,7 @@ class SaveStartProcess(AbstractProcess):
 
     @abc.abstractmethod
     def execute(self):
-        self.set_thread_name("SAVE_START")
+        set_thread_name("SAVE_START")
         print('\n>>>save_start_process', threading.current_thread())
 
         self.shutdown_and_wait()
@@ -57,5 +58,6 @@ class SaveStartProcess(AbstractProcess):
         self.send_msg_to_client(msg)
 
         if collect_time:
+            set_thread_name("REOPEN")
             time.sleep(collect_time)
             SaveStopProcess(self.server, self.request).execute()

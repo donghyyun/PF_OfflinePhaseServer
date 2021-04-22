@@ -4,7 +4,8 @@ import time
 
 from setting import PMC_MIN_FP
 from .AbstractProcess import AbstractProcess
-from . import _datastream_processes as dp
+from utils.datastream import raw_to_fingerprint_pmc
+from utils.threads import set_thread_name
 
 
 class SaveStopProcess(AbstractProcess):
@@ -22,7 +23,7 @@ class SaveStopProcess(AbstractProcess):
 
     @abc.abstractmethod
     def execute(self):
-        self.set_thread_name("SAVE_STOP")
+        set_thread_name("SAVE_STOP")
         print('\n>>>save_stop_process', threading.current_thread())
 
         self.record_collection.set_stop_time()
@@ -46,7 +47,7 @@ class SaveStopProcess(AbstractProcess):
         # for pmc
         if self.__is_pmc_construction(coordinates):
             if self.__is_enough_records(record_count):
-                fp = dp.raw_to_fingerprint_pmc(record_dict)
+                fp = raw_to_fingerprint_pmc(record_dict)
                 self.db_connector.insert_rm_point(coordinates, fp, record_count)
                 w_buffer += '\nfp: ' + str(fp)
             else:
