@@ -4,6 +4,8 @@ from datetime import datetime
 from threading import Lock
 from setting import SNIFFER_STATIONS
 
+lock = Lock()
+
 
 class CollectionDetails:
     def __init__(self):
@@ -14,8 +16,6 @@ class CollectionDetails:
         self.__coordinate = None
         self.__save_start_time = None
         self.__save_stop_time = None
-
-        self.__lock = Lock()
 
     @property
     def coordinate(self):
@@ -51,7 +51,7 @@ class CollectionDetails:
         return list(self.record_dict.values())
 
     def increase_count(self, device_id):
-        with self.__lock:
+        with lock:
             self.record_dict[device_id] += 1
 
     def clear(self):

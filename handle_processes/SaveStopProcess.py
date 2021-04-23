@@ -2,7 +2,11 @@ import abc
 import threading
 import time
 from datetime import datetime
+from copy import deepcopy
+from multiprocessing import Process, Queue
 
+from radiomap_construction import ws_rm_construction, pmc_rm_construction
+from save_data import DeleteDBConnector
 from setting import PMC_MIN_FP
 from .AbstractProcess import AbstractProcess
 from utils.threads import set_thread_name
@@ -37,16 +41,17 @@ class SaveStopProcess(AbstractProcess):
         self.db_connector.insert_collection_details(self.collection_details)
 
         w_buffer = f'start_time: {self.collection_details.save_start_time}\n' \
-                   f'stop_time: {self.collection_details.save_stop_time}' \
+                   f'stop_time: {self.collection_details.save_stop_time}\n' \
                    f'record_count: {self.collection_details.record_count()}'
 
-        # for pmc
         if self.__is_pmc_construction(self.collection_details.coordinate):
             if self.__is_enough_records(self.collection_details.record_count()):
-                # need to implement for pmc rm construction
-                w_buffer += '\nenough records for PMC'
+                Process(target=pmc_rm_construction, args=(deepcopy(self.collection_details), )).start()
             else:
                 w_buffer += "\nNot enough records"
+                DeleteDBConnector().delete_recent_data()
+        else:
+            Process(target=ws_rm_construction, args=(deepcopy(self.collection_details), )).start()
 
         threading.Thread(target=self.reopen_server,
                          args=('save_stop_process',), daemon=True).start()
