@@ -14,18 +14,18 @@ class InsertDBConnector(DBConnector):
 
     def insert_one(self, timestamp, device_id, record):
         doc = {
-            'MAC': COLLECTING_DEVICE_MAC,
-            'rssi': record,
-            'timestamp': timestamp
+            MAC: COLLECTING_DEVICE_MAC,
+            RSSI: record,
+            TIMESTAMP: timestamp
         }
         self.__insert(PREFIX + device_id, doc)
 
     def insert_records(self, records):
         def document(timestamp_, rssi_):
             return {
-                    'MAC': COLLECTING_DEVICE_MAC,
-                    'rssi': rssi_,
-                    'timestamp': timestamp_
+                    MAC: COLLECTING_DEVICE_MAC,
+                    RSSI: rssi_,
+                    TIMESTAMP: timestamp_
                 }
 
         for device_id in records.keys():
@@ -48,15 +48,15 @@ class InsertDBConnector(DBConnector):
             # PMC case
             x, y = collection_details.coordinate
             doc.update({
-                'coordinate': [x, y]
+                POINT: [x, y]
             })
         finally:
-            self.__insert(SAVE_INFORM_NAME, doc)
+            self.__insert(COLLECTION_DETAILS_NAME, doc)
 
     def insert_checkpoint(self):
         doc = {
             # 'device_id': SNIFFER_STATIONS[next(CHECKPOINTS)],
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            TIMESTAMP: datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         self.__insert('checkpoints', doc)
 
@@ -65,8 +65,8 @@ class InsertDBConnector(DBConnector):
             return
 
         doc = {
-            "fingerprint": fp,
-            "coordinate": coordinate,
+            FINGERPRINT: fp,
+            POINT: coordinate,
             "DEBUG_num of collected rssi": num_each
         }
         self.__insert(RADIOMAP_NAME, doc)
