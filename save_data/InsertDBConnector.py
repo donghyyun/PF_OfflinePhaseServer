@@ -60,16 +60,11 @@ class InsertDBConnector(DBConnector):
         }
         self.__insert('checkpoints', doc)
 
-    def insert_rm_point(self, coordinate, fp, num_each):
-        if not fp:
-            return
+    def insert_rm_points(self, rm_points):
+        if not rm_points:
+            return None
 
-        doc = {
-            FINGERPRINT: fp,
-            POINT: coordinate,
-            "DEBUG_num of collected rssi": num_each
-        }
-        self.__insert(RADIOMAP_NAME, doc)
+        self.__insert(RADIOMAP_NAME, rm_points)
 
     def rename_collection(self, old_name, new_name):
         with self.lock:
