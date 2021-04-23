@@ -1,8 +1,9 @@
-from struct import calcsize, unpack_from
 from datetime import datetime
+from struct import unpack_from, calcsize
+
 import numpy as np
 
-from setting import COLLECTING_DEVICE_MAC, IS_PRINT, SNIFFER_STATIONS
+from setting import IS_PRINT, COLLECTING_DEVICE_MAC, SNIFFER_STATIONS
 
 
 def parse_datastream(buffer):

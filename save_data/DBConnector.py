@@ -20,5 +20,8 @@ class DBConnector(metaclass=Singleton):
         return DBConnector.__lock
 
     def close(self):
+        self.__del__()
+
+    def __del__(self):
         self.__client.close()
 

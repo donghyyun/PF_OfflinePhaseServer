@@ -19,7 +19,7 @@ def get_state(now, last_time):
 def print_connection_state():
     now = datetime.now()
     connection_states = {LOST: [], UNSTABLE: [], NTP_ERROR: []}
-    print('>>>connection_states at ', now)
+    print('>>>connection_states at ', now.strftime('%Y-%m-%d %H:%M:%S'))
 
     for device_id in LAST_CONNECTION_TIME.keys():
         state = get_state(now, LAST_CONNECTION_TIME[device_id])
@@ -34,3 +34,15 @@ def print_connection_state():
         if connection_states[key]:
             print('\t' + key + ':', connection_states[key])
     print()
+
+
+if __name__ == '__main__':
+    import time
+
+    while True:
+        try:
+            time.sleep(2)
+            print_connection_state()
+        except KeyboardInterrupt:
+            print('Keyboard interrupted')
+            break
