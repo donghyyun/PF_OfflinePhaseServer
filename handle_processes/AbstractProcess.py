@@ -1,14 +1,14 @@
 import abc
 import threading
 
-from save_data import InsertDBConnector, RecordCollection
+from save_data import InsertDBConnector, CollectionDetails
 from utils.threads import get_active_threads, set_thread_name, processes_join
 
 
 class AbstractProcess:
     __is_save = False
     __db_connector = InsertDBConnector()
-    __record_collection = RecordCollection()
+    __collection_details = CollectionDetails()
 
     def __init__(self, server=None, request=None):
         self.server = server
@@ -19,8 +19,8 @@ class AbstractProcess:
         return AbstractProcess.__db_connector
 
     @property
-    def record_collection(self):
-        return AbstractProcess.__record_collection
+    def collection_details(self):
+        return AbstractProcess.__collection_details
 
     @property
     def is_save(self):

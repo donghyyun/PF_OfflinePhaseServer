@@ -32,23 +32,26 @@ class InsertDBConnector(DBConnector):
             docs = [document(timestamp, rssi) for timestamp, rssi in records[device_id]]
             self.__insert(PREFIX + device_id, docs)
 
-    def insert_save_inform(self, coordinates_tup, timestamps):
-        start, stop = timestamps
+    def insert_collection_details(self, collection_details):
         doc = {
-            'save_start_time': start,
-            'save_stop_time': stop
+            START_TIME: collection_details.save_start_time,
+            STOP_TIME: collection_details.save_stop_time
         }
 
         try:
-            from_x, from_y, to_x, to_y = coordinates_tup
+            from_x, from_y, to_x, to_y = collection_details.coordinate
             doc.update({
-                'from_coordinate': [from_x, from_y],
-                'to_coordinate': [to_x, to_y],
+                START_POINT: [from_x, from_y],
+                STOP_POINT: [to_x, to_y],
             })
-            self.__insert(SAVE_INFORM_NAME, doc)
         except ValueError:
             # PMC case
-            return None
+            x, y = collection_details.coordinate
+            doc.update({
+                'coordinate': [x, y]
+            })
+        finally:
+            self.__insert(SAVE_INFORM_NAME, doc)
 
     def insert_checkpoint(self):
         doc = {

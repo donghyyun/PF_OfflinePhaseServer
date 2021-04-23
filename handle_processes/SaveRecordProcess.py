@@ -19,5 +19,5 @@ class SaveRecordProcess(AbstractProcess):
             return None
 
         set_thread_name("RECORD")
-        self.record_collection.add(timestamp, device_id, record)
+        self.collection_details.increase_count(device_id)
         self.db_connector.insert_one(timestamp, device_id, record)

@@ -1,6 +1,7 @@
 import abc
 import threading
 import time
+from datetime import datetime
 
 from .AbstractProcess import AbstractProcess
 from .SaveStopProcess import SaveStopProcess
@@ -8,10 +9,6 @@ from utils.threads import set_thread_name
 
 
 class SaveStartProcess(AbstractProcess):
-    ########################################
-    # TO-DO: 좌표, 수집기간 외에 다른 정보(ex. location name)
-    #       들어왔을때 split
-    ########################################
     @staticmethod
     def __parse_buffer(buffer):
         try:
@@ -46,15 +43,15 @@ class SaveStartProcess(AbstractProcess):
         self.is_save = True
 
         buffer = self.request.recv(100).decode().strip()
-        coordinates, collect_time = self.__parse_buffer(buffer)
+        coordinate, collect_time = self.__parse_buffer(buffer)
 
-        self.record_collection.set_coordinates(coordinates)
-        self.record_collection.set_start_time()
+        self.collection_details.coordinate = coordinate
+        self.collection_details.save_start_time = datetime.now()
 
         threading.Thread(target=self.reopen_server,
                          args=('save_start_process',), daemon=True).start()
 
-        msg = self.__msg_to_send(coordinates)
+        msg = self.__msg_to_send(coordinate)
         self.send_msg_to_client(msg)
 
         if collect_time:
